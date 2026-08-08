@@ -1,0 +1,33 @@
+{
+  "name": "नाम जाप - Naam Jaap Tracker",
+  "short_name": "नाम जाप",
+  "description": "मंत्र जाप काउंटर - दैनिक, साप्ताहिक और मासिक ट्रैकिंग के साथ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2B0D0D",
+  "theme_color": "#2B0D0D",
+  "lang": "hi",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
