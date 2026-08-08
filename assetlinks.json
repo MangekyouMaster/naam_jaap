@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "io.github.mangekyoumaster.twa",
-        "sha256_cert_fingerprints": ["F2:00:B0:AC:EC:41:8D:AA:96:58:6F:31:F1:C7:05:30:A6:96:1E:21:58:69:3D:CF:D9:47:B9:7B:54:F5:A3:16"]
-      }
-    }]
