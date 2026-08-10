@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="नाम जाप" />
+<meta name="theme-color" content="#2B0D0D" />
+<meta name="description" content="नाम जाप काउंटर - मंत्र गिनें, दैनिक/साप्ताहिक/मासिक ट्रैक करें" />
+<title>नाम जाप</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+
+<!-- Firebase (Auth + Firestore) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Yatra+One&family=Poppins:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; height:100%; background:#1a0606; overscroll-behavior:none; }
+  body { font-family:'Poppins',sans-serif; }
+  #app { position:relative; width:100%; max-width:480px; height:100dvh; margin:0 auto; overflow:hidden;
+    display:flex; flex-direction:column; background:linear-gradient(180deg,#2B0D0D 0%,#200909 100%); }
+  .bg-overlay { position:absolute; inset:0; background:radial-gradient(circle at 50% 0%, rgba(232,121,74,0.10), transparent 55%); pointer-events:none; }
+  .bg-image { position:absolute; inset:0; background-size:cover; background-position:center; opacity:0.16; filter:blur(1px); pointer-events:none; }
+  header { position:relative; padding:16px 18px 8px; padding-top:calc(16px + env(safe-area-inset-top)); display:flex; align-items:center; justify-content:space-between; z-index:1; }
+  .title-hi { font-family:'Yatra One',cursive; font-size:24px; color:#F3E7D3; line-height:1; }
+  .title-sub { font-family:'Poppins',sans-serif; font-size:10.5px; color:#8C6F5A; margin-top:3px; letter-spacing:.5px; }
+  .header-right { display:flex; align-items:center; gap:8px; }
+  .streak-badge { display:flex; align-items:center; gap:6px; background:rgba(212,169,74,0.12); border:1px solid rgba(212,169,74,0.3); padding:6px 10px; border-radius:999px; }
+  .streak-badge span { color:#F3E7D3; font-size:13px; font-weight:600; }
+  .avatar-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid rgba(212,169,74,.4); background:rgba(212,169,74,.15); color:#D4A94A; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; }
+  .avatar-btn img { width:100%; height:100%; object-fit:cover; }
+  main { position:relative; flex:1; overflow-y:auto; z-index:1; -webkit-overflow-scrolling:touch; }
+  nav { position:relative; display:flex; border-top:1px solid rgba(212,169,74,0.18); background:rgba(20,6,6,0.55); backdrop-filter:blur(6px); z-index:1; padding-bottom:env(safe-area-inset-bottom); }
+  .tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px 8px; background:transparent; border:none; cursor:pointer; color:#8C6F5A; }
+  .tab-btn.active { color:#F3E7D3; }
+  .tab-icon { width:34px; height:34px; border-radius:12px; display:flex; align-items:center; justify-content:center; transition:all .25s; font-size:16px; }
+  .tab-btn.active .tab-icon { background:linear-gradient(145deg,#E8794A,#D4A94A); box-shadow:0 4px 14px rgba(232,121,74,.35); }
+  .tab-label { font-size:10.5px; letter-spacing:.2px; }
+
+  .jaap-wrap { display:flex; flex-direction:column; align-items:center; padding:6px 16px 20px; }
+  .chip-row { display:flex; gap:8px; overflow-x:auto; width:100%; padding:6px 2px 14px; scrollbar-width:none; }
+  .chip-row::-webkit-scrollbar { display:none; }
+  .chip { flex-shrink:0; padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:600; white-space:nowrap; cursor:pointer;
+    border:1px solid rgba(212,169,74,.3); background:rgba(212,169,74,.08); color:#D4A94A; }
+  .chip.active { border-color:transparent; background:linear-gradient(135deg,#E8794A,#D4A94A); color:#2B0D0D; }
+  .chip-add { flex-shrink:0; width:32px; height:32px; border-radius:999px; border:1px dashed rgba(212,169,74,.4); background:transparent; color:#D4A94A; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .mala-progress-label { font-size:11px; color:#8C6F5A; margin-bottom:2px; }
+  .mala-ring-wrap { position:relative; width:236px; height:236px; margin:14px 0 8px; cursor:pointer; display:flex; align-items:center; justify-content:center; user-select:none; }
+  .mala-svg { position:absolute; top:0; left:0; transition:transform .15s ease-out; }
+  .mala-btn { width:176px; height:176px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #E8794A, #C4522A 70%);
+    box-shadow:0 10px 30px rgba(232,121,74,.32); display:flex; flex-direction:column; align-items:center; justify-content:center; transition:all .15s ease-out; text-align:center; padding:0 18px; }
+  .mala-btn.pulse { transform:scale(.97); box-shadow:0 0 0 14px rgba(232,121,74,.12),0 10px 34px rgba(232,121,74,.4); }
+  .mala-mantra { font-family:'Yatra One',cursive; font-size:15px; color:rgba(255,246,235,.92); margin-bottom:2px; }
+  .mala-count { font-size:44px; font-weight:700; color:#FFF6EB; line-height:1; font-variant-numeric:tabular-nums; }
+  .mala-hint { font-size:10px; color:rgba(255,246,235,.75); margin-top:4px; letter-spacing:.5px; }
+  .stat-row { display:flex; gap:10px; margin-top:10px; width:100%; }
+  .stat-pill { flex:1; background:rgba(212,169,74,.08); border:1px solid rgba(212,169,74,.2); border-radius:14px; padding:10px 12px; text-align:center; }
+  .stat-pill .val { font-size:20px; font-weight:700; color:#F3E7D3; font-variant-numeric:tabular-nums; }
+  .stat-pill .lbl { font-size:10px; color:#8C6F5A; margin-top:2px; }
+
+  .stats-wrap { padding:10px 16px 20px; }
+  .mini-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .mini-card { background:rgba(212,169,74,.08); border:1px solid rgba(212,169,74,.2); border-radius:14px; padding:12px 14px; }
+  .mini-card .val { font-size:22px; font-weight:700; color:#F3E7D3; font-variant-numeric:tabular-nums; }
+  .mini-card .lbl { font-size:10.5px; color:#8C6F5A; margin-top:2px; }
+  .streak-cards { display:flex; gap:10px; margin-bottom:16px; }
+  .streak-card { flex:1; border-radius:14px; padding:10px 12px; display:flex; align-items:center; gap:8px; }
+  .streak-card .big { font-size:15px; font-weight:700; color:#F3E7D3; }
+  .streak-card .small { font-size:9.5px; color:#8C6F5A; }
+  .section-title { font-size:12px; font-weight:600; color:#D4A94A; margin-bottom:8px; }
+  .bar-chart-box { background:rgba(212,169,74,.06); border:1px solid rgba(212,169,74,.16); border-radius:16px; padding:14px 10px 6px; height:150px; margin-bottom:18px; display:flex; align-items:flex-end; gap:6px; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+  .bar-fill { width:60%; background:linear-gradient(180deg,#E8794A,#D4A94A); border-radius:5px 5px 0 0; min-height:2px; transition:height .4s; }
+  .bar-day { font-size:9.5px; color:#8C6F5A; }
+  .mantra-stat-card { background:rgba(212,169,74,.06); border:1px solid rgba(212,169,74,.16); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+  .mantra-stat-top { display:flex; justify-content:space-between; margin-bottom:6px; }
+  .mantra-stat-name { font-family:'Yatra One',cursive; font-size:14px; color:#F3E7D3; }
+  .mantra-stat-total { font-size:12.5px; font-weight:700; color:#D4A94A; }
+  .mantra-stat-bar-bg { height:5px; background:rgba(212,169,74,.12); border-radius:999px; overflow:hidden; }
+  .mantra-stat-bar-fg { height:100%; background:linear-gradient(90deg,#E8794A,#D4A94A); border-radius:999px; }
+
+  .gv-wrap, .sv-wrap { padding:10px 16px 20px; }
+  .gv-top, .sv-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; }
+  .gv-hint { font-size:12px; color:#8C6F5A; }
+  .btn-pill { display:flex; align-items:center; gap:6px; background:linear-gradient(135deg,#E8794A,#D4A94A); color:#2B0D0D; padding:7px 12px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; border:none; white-space:nowrap; }
+  .empty-box { border:1.5px dashed rgba(212,169,74,.3); border-radius:16px; padding:36px 16px; text-align:center; color:#8C6F5A; font-size:12.5px; }
+  .gallery-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
+  .gallery-item { position:relative; aspect-ratio:1; border-radius:12px; overflow:hidden; cursor:pointer; border:2px solid transparent; }
+  .gallery-item.selected { border-color:#E8794A; }
+  .gallery-item img { width:100%; height:100%; object-fit:cover; display:block; }
+  .gallery-check { position:absolute; top:4px; left:4px; background:#E8794A; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; }
+  .gallery-del { position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; background:rgba(20,6,6,.7); border:none; color:#F3E7D3; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; }
+
+  .add-song-box { background:rgba(212,169,74,.07); border:1px solid rgba(212,169,74,.22); border-radius:14px; padding:12px; margin-bottom:14px; }
+  .add-song-label { font-size:11px; color:#8C6F5A; margin-bottom:8px; }
+  .field { width:100%; box-sizing:border-box; background:rgba(243,231,211,.06); border:1px solid rgba(212,169,74,.25); border-radius:10px; padding:10px 12px; color:#F3E7D3; font-family:'Poppins',sans-serif; font-size:13px; outline:none; margin-top:8px; }
+  .field:first-of-type { margin-top:0; }
+  .btn-full { margin-top:10px; width:100%; background:linear-gradient(135deg,#E8794A,#D4A94A); border:none; color:#2B0D0D; font-weight:700; font-size:12.5px; padding:9px; border-radius:10px; cursor:pointer; }
+  .divider-row { display:flex; align-items:center; gap:8px; margin:12px 0 8px; }
+  .divider-row .line { flex:1; height:1px; background:rgba(212,169,74,.2); }
+  .divider-row span { font-size:10px; color:#8C6F5A; }
+  .upload-dashed { display:flex; align-items:center; justify-content:center; gap:6px; border:1px dashed rgba(212,169,74,.35); border-radius:10px; padding:9px; cursor:pointer; color:#D4A94A; font-size:12px; }
+  .song-item { display:flex; align-items:center; gap:10px; background:rgba(212,169,74,.07); border:1px solid rgba(212,169,74,.18); border-radius:12px; padding:9px 10px; margin-bottom:8px; }
+  .song-play { width:34px; height:34px; border-radius:50%; flex-shrink:0; border:none; cursor:pointer; background:rgba(212,169,74,.15); display:flex; align-items:center; justify-content:center; color:#D4A94A; font-size:13px; }
+  .song-play.playing { background:linear-gradient(135deg,#E8794A,#D4A94A); color:#2B0D0D; }
+  .song-title { font-size:13px; font-weight:600; color:#F3E7D3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .song-sub { font-size:9.5px; color:#8C6F5A; }
+  .icon-btn { width:32px; height:32px; border-radius:10px; background:rgba(232,121,74,.14); color:#E8794A; border:1px solid rgba(232,121,74,.35); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+
+  .modal-overlay { position:absolute; inset:0; background:rgba(15,4,4,.72); backdrop-filter:blur(3px); display:flex; align-items:flex-end; z-index:20; }
+  .modal-sheet { width:100%; background:#2B0D0D; border-top:1px solid rgba(212,169,74,.3); border-radius:20px 20px 0 0; padding:18px; max-height:78%; overflow-y:auto; padding-bottom:calc(18px + env(safe-area-inset-bottom)); }
+  .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .modal-title { font-family:'Yatra One',cursive; font-size:18px; color:#F3E7D3; }
+  .mantra-row { display:flex; align-items:center; justify-content:space-between; background:rgba(212,169,74,.07); border:1px solid rgba(212,169,74,.18); border-radius:10px; padding:8px 12px; margin-bottom:8px; }
+  .mantra-row .name { font-family:'Yatra One',cursive; font-size:14px; color:#F3E7D3; }
+  .mantra-row .sub { font-size:10px; color:#8C6F5A; }
+  .hidden { display:none !important; }
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-thumb { background:rgba(212,169,74,.3); border-radius:10px; }
+
+  #authScreen { position:absolute; inset:0; z-index:50; display:flex; flex-direction:column; justify-content:center; padding:28px 26px; }
+  .auth-logo { text-align:center; margin-bottom:28px; }
+  .auth-logo .title-hi { font-size:32px; }
+  .auth-error { background:rgba(232,121,74,.14); border:1px solid rgba(232,121,74,.4); color:#F3D9CB; font-size:12px; padding:9px 12px; border-radius:10px; margin-bottom:10px; }
+  .auth-toggle { text-align:center; margin-top:14px; font-size:12.5px; color:#8C6F5A; }
+  .auth-toggle a { color:#D4A94A; font-weight:600; cursor:pointer; text-decoration:none; }
+  .google-btn { margin-top:8px; width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:#F3E7D3; border:none; color:#2B0D0D; font-weight:600; font-size:13px; padding:11px; border-radius:10px; cursor:pointer; }
+  .user-info-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .user-info-avatar { width:46px; height:46px; border-radius:50%; background:rgba(212,169,74,.15); display:flex; align-items:center; justify-content:center; color:#D4A94A; font-weight:700; font-size:16px; overflow:hidden; }
+  .user-info-avatar img { width:100%; height:100%; object-fit:cover; }
+  .user-info-email { font-size:12.5px; color:#8C6F5A; word-break:break-all; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bg-overlay"></div>
+  <div id="bgImageLayer" class="bg-image hidden"></div>
+
+  <div id="authScreen">
+    <div class="auth-logo">
+      <div class="title-hi">नाम जाप</div>
+      <div class="title-sub">NAAM JAAP TRACKER</div>
+    </div>
+    <div id="authError" class="auth-error hidden"></div>
+    <input id="authEmail" class="field" placeholder="ईमेल" autocomplete="username" />
+    <input id="authPassword" class="field" placeholder="पासवर्ड" type="password" autocomplete="current-password" />
+    <button class="btn-full" id="authSubmitBtn">साइन इन करें</button>
+    <div class="divider-row"><div class="line"></div><span>या</span><div class="line"></div></div>
+    <button class="google-btn" id="googleSignInBtn">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.5-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.5 5.1 29.6 3 24 3 16.3 3 9.6 7.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.5 36.2 26.9 37 24 37c-5.3 0-9.7-3.3-11.3-8l-6.6 5.1C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.6l6.6 5.4C41.5 36 45 30.6 45 24c0-1.4-.1-2.5-.4-3.5z"/></svg>
+      Google से जारी रखें
+    </button>
+    <div class="auth-toggle" id="authToggleWrap">नया यूज़र हैं? <a id="authToggleLink">खाता बनाएं</a></div>
+  </div>
+
+  <header class="hidden" id="mainHeader">
+    <div>
+      <div class="title-hi">नाम जाप</div>
+      <div class="title-sub">NAAM JAAP TRACKER</div>
+    </div>
+    <div class="header-right">
+      <div class="streak-badge">🔥 <span id="streakVal">0</span></div>
+      <button class="avatar-btn" id="avatarBtn">?</button>
+    </div>
+  </header>
+
+  <main id="mainArea" class="hidden"></main>
+
+  <nav id="mainNav" class="hidden">
+    <button class="tab-btn active" data-tab="jaap"><div class="tab-icon">⭕</div><div class="tab-label">जाप</div></button>
+    <button class="tab-btn" data-tab="stats"><div class="tab-icon">📊</div><div class="tab-label">आँकड़े</div></button>
+    <button class="tab-btn" data-tab="gallery"><div class="tab-icon">🖼️</div><div class="tab-label">गैलरी</div></button>
+    <button class="tab-btn" data-tab="songs"><div class="tab-icon">🎵</div><div class="tab-label">भजन</div></button>
+  </nav>
+
+  <div id="manageModal" class="modal-overlay hidden">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">नाम प्रबंधित करें</div>
+        <button class="icon-btn" onclick="closeManage()">✕</button>
+      </div>
+      <div id="mantraList"></div>
+      <div class="add-song-label" style="margin-top:16px;">नया नाम जोड़ें</div>
+      <input id="newMantraHi" class="field" placeholder="हिंदी में (जैसे: ॐ गं गणपतये नमः)" />
+      <input id="newMantraEn" class="field" placeholder="English (optional)" />
+      <button class="btn-full" onclick="addMantra()">जोड़ें</button>
+    </div>
+  </div>
+
+  <div id="signOutModal" class="modal-overlay hidden">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">खाता</div>
+        <button class="icon-btn" onclick="closeSignOutModal()">✕</button>
+      </div>
+      <div class="user-info-row">
+        <div class="user-info-avatar" id="signOutAvatar">?</div>
+        <div class="user-info-email" id="signOutEmail"></div>
+      </div>
+      <button class="btn-full" id="signOutBtn" style="background:rgba(232,121,74,.18); color:#E8794A; border:1px solid rgba(232,121,74,.4);">साइन आउट करें</button>
+    </div>
+  </div>
+</div>
+
+<audio id="audioPlayer"></audio>
+<div id="ytPlayerContainer" style="position:fixed; bottom:8px; right:8px; z-index:60; border-radius:8px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.4);"></div>
+<input type="file" id="imageFileInput" accept="image/*" multiple class="hidden" />
+<input type="file" id="audioFileInput" accept="audio/*" class="hidden" />
+
+<script>
+/* =================== FIREBASE SETUP ===================
+   यहाँ अपने Firebase project की config डालें।
+   कैसे मिलेगी: console.firebase.google.com → Project बनाएं →
+   Project Settings → आपकी apps → Web app (</>) जोड़ें → यहाँ config कॉपी करें।
+   Authentication में जाकर "Email/Password" और "Google" दोनों sign-in method ON करें।
+   Firestore Database भी बनाएं (production mode, कोई भी region).
+=========================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBSSrOq73E4NkV4lYSF77dqAkBefMZ2iB8",
+  authDomain: "radha-naam-jaap-a2501.firebaseapp.com",
+  projectId: "radha-naam-jaap-a2501",
+  storageBucket: "radha-naam-jaap-a2501.firebasestorage.app",
+  messagingSenderId: "942426378894",
+  appId: "1:942426378894:web:ef002ae82a5cbb9dbdafdf"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+
+/* ---------------- helpers ---------------- */
+const pad = n => String(n).padStart(2, "0");
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayKey = () => fmtDate(new Date());
+const dayLabelHi = key => new Date(key + "T00:00:00").toLocaleDateString("hi-IN", { weekday: "short" });
+const monthKeyOf = key => key.slice(0, 7);
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+
+const defaultData = () => ({
+  mantras: [
+    { id: "om-namah-shivaya", name: "ॐ नमः शिवाय", sub: "Om Namah Shivaya" },
+    { id: "hare-krishna", name: "हरे कृष्ण", sub: "Hare Krishna" },
+    { id: "sri-ram", name: "श्री राम", sub: "Shri Ram" },
+  ],
+  selectedId: "om-namah-shivaya",
+  counts: {},
+  backgroundId: null,
+  songs: [],
+});
+let state = defaultData();
+let images = [];
+
+function sumByDate(counts) {
+  const out = {};
+  Object.values(counts).forEach(m => {
+    Object.entries(m.byDate || {}).forEach(([k,v]) => { out[k] = (out[k]||0) + v; });
+  });
+  return out;
+}
+function calcStreaks(byDate) {
+  const dates = Object.keys(byDate).filter(k => byDate[k] > 0).sort();
+  if (!dates.length) return { current: 0, best: 0 };
+  let best = 1, run = 1;
+  for (let i=1;i<dates.length;i++) {
+    const prev = new Date(dates[i-1]+"T00:00:00");
+    const cur = new Date(dates[i]+"T00:00:00");
+    const diff = Math.round((cur-prev)/86400000);
+    run = diff === 1 ? run+1 : 1;
+    if (run > best) best = run;
+  }
+  let current = 0;
+  let d = new Date();
+  let key = fmtDate(d);
+  if (!byDate[key]) d.setDate(d.getDate()-1);
+  while (byDate[fmtDate(d)]) { current++; d.setDate(d.getDate()-1); }
+  return { current, best };
+}
+function last7Days() {
+  const arr = []; const d = new Date();
+  for (let i=6;i>=0;i--) { const dd = new Date(d); dd.setDate(d.getDate()-i); arr.push(fmtDate(dd)); }
+  return arr;
+}
+function resizeImage(file, maxDim=800, quality=0.68) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height*maxDim/width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width*maxDim/height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------------- Firestore load/save ---------------- */
+let saveTimer = null;
+function scheduleSave() {
+  if (!currentUser) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    db.collection("users").doc(currentUser.uid).set({
+      mantras: state.mantras, selectedId: state.selectedId, counts: state.counts,
+      backgroundId: state.backgroundId, songs: state.songs, updatedAt: Date.now(),
+    }, { merge: true }).catch(e => console.error("save failed", e));
+  }, 500);
+}
+async function loadUserData(uid_) {
+  const doc = await db.collection("users").doc(uid_).get();
+  if (doc.exists) {
+    const d = doc.data();
+    state = { ...defaultData(), ...d };
+  } else {
+    state = defaultData();
+    await db.collection("users").doc(uid_).set({ ...state, updatedAt: Date.now() });
+  }
+  const imgSnap = await db.collection("users").doc(uid_).collection("images").orderBy("createdAt").get();
+  images = imgSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+/* ---------------- auth ---------------- */
+let authMode = "signin";
+function showAuthError(msg) {
+  const el = document.getElementById("authError");
+  el.textContent = msg; el.classList.remove("hidden");
+}
+function hideAuthError() { document.getElementById("authError").classList.add("hidden"); }
+
+function rewireAuthToggle() {
+  document.getElementById("authToggleLink").onclick = () => {
+    authMode = authMode === "signin" ? "signup" : "signin";
+    document.getElementById("authSubmitBtn").textContent = authMode === "signin" ? "साइन इन करें" : "खाता बनाएं";
+    document.getElementById("authToggleWrap").innerHTML = authMode === "signin"
+      ? 'नया यूज़र हैं? <a id="authToggleLink">खाता बनाएं</a>'
+      : 'पहले से खाता है? <a id="authToggleLink">साइन इन करें</a>';
+    rewireAuthToggle();
+  };
+}
+rewireAuthToggle();
+
+document.getElementById("authSubmitBtn").onclick = async () => {
+  hideAuthError();
+  const email = document.getElementById("authEmail").value.trim();
+  const pass = document.getElementById("authPassword").value;
+  if (!email || !pass) { showAuthError("ईमेल और पासवर्ड दोनों भरें"); return; }
+  try {
+    if (authMode === "signin") await auth.signInWithEmailAndPassword(email, pass);
+    else await auth.createUserWithEmailAndPassword(email, pass);
+  } catch (e) {
+    showAuthError(friendlyAuthError(e));
+  }
+};
+document.getElementById("googleSignInBtn").onclick = async () => {
+  hideAuthError();
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (e) {
+    try { await auth.signInWithRedirect(provider); }
+    catch (e2) { showAuthError(friendlyAuthError(e2)); }
+  }
+};
+function friendlyAuthError(e) {
+  const code = e.code || "";
+  if (code.includes("wrong-password") || code.includes("invalid-credential")) return "पासवर्ड गलत है";
+  if (code.includes("user-not-found")) return "खाता नहीं मिला, नया खाता बनाएं";
+  if (code.includes("email-already-in-use")) return "यह ईमेल पहले से इस्तेमाल हो रहा है, साइन इन करें";
+  if (code.includes("weak-password")) return "पासवर्ड कम से कम 6 अक्षर का हो";
+  if (code.includes("invalid-email")) return "ईमेल सही नहीं है";
+  return "कुछ गलत हो गया, दोबारा कोशिश करें";
+}
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("authScreen").classList.add("hidden");
+    document.getElementById("mainHeader").classList.remove("hidden");
+    document.getElementById("mainArea").classList.remove("hidden");
+    document.getElementById("mainNav").classList.remove("hidden");
+    const avatarBtn = document.getElementById("avatarBtn");
+    if (user.photoURL) avatarBtn.innerHTML = `<img src="${user.photoURL}" />`;
+    else avatarBtn.textContent = (user.email || "?")[0].toUpperCase();
+    await loadUserData(user.uid);
+    render();
+  } else {
+    currentUser = null;
+    document.getElementById("authScreen").classList.remove("hidden");
+    document.getElementById("mainHeader").classList.add("hidden");
+    document.getElementById("mainArea").classList.add("hidden");
+    document.getElementById("mainNav").classList.add("hidden");
+  }
+});
+
+document.getElementById("avatarBtn").onclick = () => {
+  const u = currentUser;
+  if (!u) return;
+  const av = document.getElementById("signOutAvatar");
+  av.innerHTML = u.photoURL ? `<img src="${u.photoURL}"/>` : (u.email||"?")[0].toUpperCase();
+  document.getElementById("signOutEmail").textContent = u.email || "";
+  document.getElementById("signOutModal").classList.remove("hidden");
+};
+function closeSignOutModal() { document.getElementById("signOutModal").classList.add("hidden"); }
+document.getElementById("signOutModal").addEventListener("click", closeSignOutModal);
+document.getElementById("signOutBtn").onclick = () => auth.signOut();
+
+/* ---------------- render ---------------- */
+let currentTab = "jaap";
+let playingId = null;
+let addSongOpen = false;
+
+function render() {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === currentTab));
+  const main = document.getElementById("mainArea");
+  if (currentTab === "jaap") main.innerHTML = renderJaap();
+  else if (currentTab === "stats") main.innerHTML = renderStats();
+  else if (currentTab === "gallery") main.innerHTML = renderGallery();
+  else if (currentTab === "songs") main.innerHTML = renderSongs();
+
+  const combined = sumByDate(state.counts);
+  document.getElementById("streakVal").textContent = calcStreaks(combined).current;
+
+  const bgLayer = document.getElementById("bgImageLayer");
+  const bgImg = images.find(i => i.id === state.backgroundId);
+  if (bgImg) { bgLayer.style.backgroundImage = `url(${bgImg.dataUrl})`; bgLayer.classList.remove("hidden"); }
+  else bgLayer.classList.add("hidden");
+
+  attachHandlers();
+}
+
+function renderJaap() {
+  const sel = state.mantras.find(m => m.id === state.selectedId) || state.mantras[0];
+  const cnt = state.counts[state.selectedId] || { total: 0, byDate: {} };
+  const today = cnt.byDate?.[todayKey()] || 0;
+  const progress = (cnt.total % 108) / 108;
+  const rounds = Math.floor(cnt.total / 108);
+  const beadCount = 36, filled = Math.round(progress*beadCount), size=236, r=size/2-14;
+  let beads = "";
+  for (let i=0;i<beadCount;i++) {
+    const angle = (i/beadCount)*Math.PI*2 - Math.PI/2;
+    const x = size/2 + r*Math.cos(angle), y = size/2 + r*Math.sin(angle);
+    const isSumeru = i===0, on = i<filled;
+    beads += `<circle cx="${x}" cy="${y}" r="${isSumeru?6.5:4.2}" fill="${isSumeru?'#E8794A':on?'#D4A94A':'rgba(243,231,211,0.16)'}"/>`;
+  }
+  const chips = state.mantras.map(m => `<button class="chip ${m.id===state.selectedId?'active':''}" data-mid="${m.id}">${m.name}</button>`).join("");
+  return `
+    <div class="jaap-wrap">
+      <div class="chip-row">${chips}<button class="chip-add" id="openManageBtn">+</button></div>
+      <div class="mala-progress-label">माला ${rounds} पूर्ण · ${Math.round(progress*108)}/108</div>
+      <div class="mala-ring-wrap" id="tapArea">
+        <svg class="mala-svg" width="${size}" height="${size}">${beads}</svg>
+        <div class="mala-btn" id="malaBtn">
+          <div class="mala-mantra">${sel?.name || ""}</div>
+          <div class="mala-count">${today}</div>
+          <div class="mala-hint">आज · TAP करें</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-pill"><div class="val">${cnt.total}</div><div class="lbl">कुल जाप</div></div>
+        <div class="stat-pill"><div class="val">${rounds}</div><div class="lbl">माला</div></div>
+      </div>
+    </div>`;
+}
+
+function renderStats() {
+  const combined = sumByDate(state.counts);
+  const today = combined[todayKey()] || 0;
+  const week = last7Days().reduce((s,k) => s + (combined[k]||0), 0);
+  const mk = monthKeyOf(todayKey());
+  const month = Object.entries(combined).filter(([k]) => monthKeyOf(k)===mk).reduce((s,[,v]) => s+v, 0);
+  const allTime = Object.values(state.counts).reduce((s,m) => s+m.total, 0);
+  const streaks = calcStreaks(combined);
+  const days = last7Days();
+  const maxDay = Math.max(1, ...days.map(k => combined[k]||0));
+  const bars = days.map(k => {
+    const v = combined[k]||0;
+    const h = Math.max(3, Math.round((v/maxDay)*110));
+    return `<div class="bar-col"><div class="bar-fill" style="height:${h}px"></div><div class="bar-day">${dayLabelHi(k)}</div></div>`;
+  }).join("");
+  const mantraCards = state.mantras.map(m => {
+    const t = state.counts[m.id]?.total || 0;
+    const pct = allTime ? Math.round((t/allTime)*100) : 0;
+    return `<div class="mantra-stat-card">
+      <div class="mantra-stat-top"><span class="mantra-stat-name">${m.name}</span><span class="mantra-stat-total">${t}</span></div>
+      <div class="mantra-stat-bar-bg"><div class="mantra-stat-bar-fg" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join("");
+  return `
+    <div class="stats-wrap">
+      <div class="mini-grid">
+        <div class="mini-card"><div class="val">${today}</div><div class="lbl">आज</div></div>
+        <div class="mini-card"><div class="val">${week}</div><div class="lbl">यह सप्ताह</div></div>
+        <div class="mini-card"><div class="val">${month}</div><div class="lbl">यह महीना</div></div>
+        <div class="mini-card"><div class="val">${allTime}</div><div class="lbl">सर्वकालिक</div></div>
+      </div>
+      <div class="streak-cards">
+        <div class="streak-card" style="background:rgba(107,143,90,.12);border:1px solid rgba(107,143,90,.3);">🔥<div><div class="big">${streaks.current} दिन</div><div class="small">वर्तमान लकीर</div></div></div>
+        <div class="streak-card" style="background:rgba(212,169,74,.1);border:1px solid rgba(212,169,74,.28);">✨<div><div class="big">${streaks.best} दिन</div><div class="small">सर्वश्रेष्ठ लकीर</div></div></div>
+      </div>
+      <div class="section-title">पिछले 7 दिन</div>
+      <div class="bar-chart-box">${bars}</div>
+      <div class="section-title">नाम अनुसार</div>
+      ${mantraCards}
+    </div>`;
+}
+
+function renderGallery() {
+  const hasImgs = images.length > 0;
+  const grid = images.map(img => `
+    <div class="gallery-item ${img.id===state.backgroundId?'selected':''}" data-imgid="${img.id}">
+      <img src="${img.dataUrl}" />
+      ${img.id===state.backgroundId ? '<div class="gallery-check">✓</div>' : ''}
+      <button class="gallery-del" data-delimg="${img.id}">✕</button>
+    </div>`).join("");
+  return `
+    <div class="gv-wrap">
+      <div class="gv-top">
+        <div class="gv-hint">${hasImgs ? "टैप कर के बैकग्राउंड चुनें" : "अपनी भगवान की तस्वीरें जोड़ें"}</div>
+        <button class="btn-pill" id="addImageBtn">＋ जोड़ें</button>
+      </div>
+      ${hasImgs ? `<div class="gallery-grid">${grid}</div>` : `<div class="empty-box">🖼️<br/>अभी कोई तस्वीर नहीं है</div>`}
+    </div>`;
+}
+
+function renderSongs() {
+  const hasSongs = state.songs.length > 0;
+  const list = state.songs.map(s => `
+    <div class="song-item">
+      <button class="song-play ${playingId===s.id?'playing':''}" data-playid="${s.id}">${playingId===s.id?'⏸':'▶'}</button>
+      <div style="flex:1;min-width:0;">
+        <div class="song-title">${s.title}</div>
+        <div class="song-sub">${playingId===s.id?'🔊 बज रहा है':(s.platform==='youtube'?'📺 YouTube':(s.local?'इस सेशन के लिए':'सेव किया गया'))}</div>
+      </div>
+      <button class="icon-btn" data-delsong="${s.id}">🗑</button>
+    </div>`).join("");
+  return `
+    <div class="sv-wrap">
+      <div class="sv-top">
+        <div class="gv-hint">भजन / मंत्र संगीत</div>
+        <button class="btn-pill" id="toggleAddSongBtn">＋ जोड़ें</button>
+      </div>
+      ${addSongOpen ? `
+      <div class="add-song-box">
+        <div class="add-song-label">🔗 URL से जोड़ें (सेव रहेगा)</div>
+        <input id="songTitleInput" class="field" placeholder="भजन का नाम" />
+        <input id="songUrlInput" class="field" placeholder="ऑडियो लिंक (https://...)" />
+        <button class="btn-full" id="submitSongBtn">जोड़ें</button>
+        <div class="divider-row"><div class="line"></div><span>या</span><div class="line"></div></div>
+        <label class="upload-dashed" for="audioFileInput">⬆ डिवाइस से फ़ाइल चुनें (सिर्फ़ इस सेशन के लिए)</label>
+      </div>` : ""}
+      ${hasSongs ? list : `<div class="empty-box">🎵<br/>अभी कोई भजन नहीं जोड़ा गया</div>`}
+    </div>`;
+}
+
+/* ---------------- actions ---------------- */
+function increment() {
+  const cur = state.counts[state.selectedId] || { total: 0, byDate: {} };
+  const t = todayKey();
+  cur.total += 1;
+  cur.byDate[t] = (cur.byDate[t]||0) + 1;
+  state.counts[state.selectedId] = cur;
+  scheduleSave();
+  if (navigator.vibrate) navigator.vibrate(12);
+  const btn = document.getElementById("malaBtn");
+  if (btn) { btn.classList.add("pulse"); setTimeout(()=>btn.classList.remove("pulse"),150); }
+  render();
+}
+
+function openManage() {
+  document.getElementById("manageModal").classList.remove("hidden");
+  renderMantraList();
+}
+function closeManage() { document.getElementById("manageModal").classList.add("hidden"); }
+function renderMantraList() {
+  const el = document.getElementById("mantraList");
+  el.innerHTML = state.mantras.map(m => `
+    <div class="mantra-row">
+      <div><div class="name">${m.name}</div>${m.sub?`<div class="sub">${m.sub}</div>`:""}</div>
+      ${state.mantras.length>1 ? `<button class="icon-btn" data-delmantra="${m.id}">🗑</button>` : ""}
+    </div>`).join("");
+  el.querySelectorAll("[data-delmantra]").forEach(b => b.onclick = () => {
+    const id = b.dataset.delmantra;
+    if (state.mantras.length<=1) return;
+    state.mantras = state.mantras.filter(m => m.id!==id);
+    delete state.counts[id];
+    if (state.selectedId===id) state.selectedId = state.mantras[0].id;
+    scheduleSave(); renderMantraList(); render();
+  });
+}
+function addMantra() {
+  const hi = document.getElementById("newMantraHi").value.trim();
+  const en = document.getElementById("newMantraEn").value.trim();
+  if (!hi) return;
+  const id = uid();
+  state.mantras.push({ id, name: hi, sub: en });
+  state.selectedId = id;
+  scheduleSave();
+  document.getElementById("newMantraHi").value = "";
+  document.getElementById("newMantraEn").value = "";
+  renderMantraList(); render();
+}
+
+async function handleImageFiles(files) {
+  if (!currentUser) return;
+  for (const f of files) {
+    try {
+      const dataUrl = await resizeImage(f);
+      const docRef = await db.collection("users").doc(currentUser.uid).collection("images").add({
+        name: f.name, dataUrl, createdAt: Date.now(),
+      });
+      images.push({ id: docRef.id, name: f.name, dataUrl });
+    } catch (e) { console.error(e); }
+  }
+  render();
+}
+async function deleteImage(id) {
+  images = images.filter(i => i.id!==id);
+  if (state.backgroundId===id) { state.backgroundId = null; scheduleSave(); }
+  render();
+  if (currentUser) {
+    try { await db.collection("users").doc(currentUser.uid).collection("images").doc(id).delete(); }
+    catch (e) { console.error(e); }
+  }
+}
+
+function extractYouTubeId(url) {
+  const patterns = [
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+    /[?&]v=([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function addSongFromUrl() {
+  const title = document.getElementById("songTitleInput").value.trim();
+  const url = document.getElementById("songUrlInput").value.trim();
+  if (!title || !url) return;
+  const ytId = extractYouTubeId(url);
+  if (ytId) {
+    state.songs.push({ id: uid(), title, url, local: false, platform: "youtube", videoId: ytId });
+  } else {
+    state.songs.push({ id: uid(), title, url, local: false, platform: "direct" });
+  }
+  addSongOpen = false;
+  scheduleSave(); render();
+}
+function addLocalSong(file) {
+  const url = URL.createObjectURL(file);
+  state.songs.push({ id: uid(), title: file.name.replace(/\.[^.]+$/, ""), url, local: true, platform: "direct" });
+  render();
+}
+function deleteSongLocal(id) {
+  if (playingId===id) stopAllPlayback();
+  state.songs = state.songs.filter(s => s.id!==id);
+  scheduleSave(); render();
+}
+function stopAllPlayback() {
+  document.getElementById("audioPlayer").pause();
+  const ytBox = document.getElementById("ytPlayerContainer");
+  if (ytBox) ytBox.innerHTML = "";
+  playingId = null;
+}
+function togglePlay(song) {
+  const wasPlaying = playingId === song.id;
+  stopAllPlayback();
+  if (wasPlaying) { render(); return; }
+  if (song.platform === "youtube") {
+    const ytBox = document.getElementById("ytPlayerContainer");
+    ytBox.innerHTML = `<iframe width="160" height="90" src="https://www.youtube.com/embed/${song.videoId}?autoplay=1&playsinline=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
+  } else {
+    const audio = document.getElementById("audioPlayer");
+    audio.src = song.url;
+    audio.play().catch(()=>{});
+  }
+  playingId = song.id;
+  render();
+}
+
+/* ---------------- event wiring ---------------- */
+function attachHandlers() {
+  document.querySelectorAll(".chip[data-mid]").forEach(c => c.onclick = () => { state.selectedId = c.dataset.mid; scheduleSave(); render(); });
+  const openManageBtn = document.getElementById("openManageBtn");
+  if (openManageBtn) openManageBtn.onclick = openManage;
+  const tapArea = document.getElementById("tapArea");
+  if (tapArea) tapArea.onclick = increment;
+
+  const addImageBtn = document.getElementById("addImageBtn");
+  if (addImageBtn) addImageBtn.onclick = () => document.getElementById("imageFileInput").click();
+  document.querySelectorAll("[data-imgid]").forEach(el => el.onclick = (e) => {
+    if (e.target.closest("[data-delimg]")) return;
+    const id = el.dataset.imgid;
+    state.backgroundId = state.backgroundId===id ? null : id;
+    scheduleSave(); render();
+  });
+  document.querySelectorAll("[data-delimg]").forEach(b => b.onclick = (e) => {
+    e.stopPropagation();
+    deleteImage(b.dataset.delimg);
+  });
+
+  const toggleAddSongBtn = document.getElementById("toggleAddSongBtn");
+  if (toggleAddSongBtn) toggleAddSongBtn.onclick = () => { addSongOpen = !addSongOpen; render(); };
+  const submitSongBtn = document.getElementById("submitSongBtn");
+  if (submitSongBtn) submitSongBtn.onclick = addSongFromUrl;
+  document.querySelectorAll("[data-playid]").forEach(b => b.onclick = () => {
+    const song = state.songs.find(s => s.id===b.dataset.playid);
+    if (song) togglePlay(song);
+  });
+  document.querySelectorAll("[data-delsong]").forEach(b => b.onclick = () => deleteSongLocal(b.dataset.delsong));
+}
+
+document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => { currentTab = b.dataset.tab; render(); });
+document.getElementById("imageFileInput").addEventListener("change", e => { handleImageFiles(Array.from(e.target.files||[])); e.target.value=""; });
+document.getElementById("audioFileInput").addEventListener("change", e => { const f=e.target.files?.[0]; if(f) addLocalSong(f); e.target.value=""; });
+document.getElementById("audioPlayer").addEventListener("ended", () => { playingId=null; render(); });
+document.getElementById("manageModal").addEventListener("click", closeManage);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(e => console.log("SW failed", e));
+  });
+}
+</script>
+</body>
+</html>
