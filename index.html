@@ -139,6 +139,62 @@
   .user-info-avatar { width:46px; height:46px; border-radius:50%; background:rgba(212,169,74,.15); display:flex; align-items:center; justify-content:center; color:#D4A94A; font-weight:700; font-size:16px; overflow:hidden; }
   .user-info-avatar img { width:100%; height:100%; object-fit:cover; }
   .user-info-email { font-size:12.5px; color:#8C6F5A; word-break:break-all; }
+
+  /* ambient breathing glow behind mala */
+  .mala-ring-wrap::before { content:""; position:absolute; inset:-30px; border-radius:50%;
+    background:radial-gradient(circle, rgba(232,121,74,.22), transparent 70%);
+    animation:ambientPulse 3.4s ease-in-out infinite; z-index:0; }
+  @keyframes ambientPulse { 0%,100% { transform:scale(.92); opacity:.6; } 50% { transform:scale(1.08); opacity:1; } }
+
+  /* daily goal (sankalp) card */
+  .goal-card { width:100%; background:rgba(212,169,74,.08); border:1px solid rgba(212,169,74,.22); border-radius:16px; padding:12px 14px; margin-top:14px; cursor:pointer; }
+  .goal-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .goal-label { font-size:11.5px; color:#D4A94A; font-weight:600; display:flex; align-items:center; gap:5px; }
+  .goal-count { font-size:11.5px; color:#8C6F5A; font-variant-numeric:tabular-nums; }
+  .goal-bar-bg { height:8px; background:rgba(212,169,74,.14); border-radius:999px; overflow:hidden; }
+  .goal-bar-fg { height:100%; background:linear-gradient(90deg,#6B8F5A,#D4A94A); border-radius:999px; transition:width .4s ease; }
+  .goal-done-badge { font-size:10.5px; color:#8FBF7A; margin-top:6px; text-align:center; }
+
+  /* petal celebration */
+  .petal { position:fixed; top:-24px; font-size:20px; pointer-events:none; z-index:90; animation:petalFall linear forwards; }
+  @keyframes petalFall {
+    0% { transform:translateY(0) translateX(0) rotate(0deg); opacity:1; }
+    100% { transform:translateY(110vh) translateX(var(--drift)) rotate(360deg); opacity:0; }
+  }
+  .celebrate-toast { position:fixed; left:50%; top:18%; transform:translateX(-50%); z-index:91;
+    background:rgba(43,13,13,.92); border:1px solid rgba(212,169,74,.5); color:#F3E7D3; padding:12px 22px;
+    border-radius:14px; font-family:'Yatra One',cursive; font-size:16px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.4);
+    animation:toastPop .4s ease; }
+  @keyframes toastPop { 0% { opacity:0; transform:translateX(-50%) scale(.8); } 100% { opacity:1; transform:translateX(-50%) scale(1); } }
+
+  /* dhyan (meditation) tab */
+  .dhyan-wrap { display:flex; flex-direction:column; align-items:center; padding:20px 20px 30px; text-align:center; }
+  .dhyan-title { font-family:'Yatra One',cursive; font-size:19px; color:#F3E7D3; margin-bottom:4px; }
+  .dhyan-sub { font-size:11.5px; color:#8C6F5A; margin-bottom:22px; }
+  .breathe-circle-wrap { width:220px; height:220px; display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:24px; }
+  .breathe-circle { width:130px; height:130px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #E8794A, #C4522A 75%);
+    box-shadow:0 0 0 0 rgba(232,121,74,.4); display:flex; align-items:center; justify-content:center; }
+  .breathe-circle.running { animation:breathe 8s ease-in-out infinite; }
+  @keyframes breathe {
+    0%, 100% { transform:scale(0.72); box-shadow:0 0 0 0 rgba(232,121,74,.35); }
+    50% { transform:scale(1.15); box-shadow:0 0 0 26px rgba(232,121,74,0); }
+  }
+  .breathe-label { color:#FFF6EB; font-family:'Poppins',sans-serif; font-size:12px; font-weight:600; letter-spacing:.5px; }
+  .dhyan-timer { font-size:34px; font-weight:700; color:#F3E7D3; font-variant-numeric:tabular-nums; margin-bottom:18px; }
+  .duration-row { display:flex; gap:8px; margin-bottom:18px; }
+  .duration-chip { padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer;
+    border:1px solid rgba(212,169,74,.3); background:rgba(212,169,74,.08); color:#D4A94A; }
+  .duration-chip.active { border-color:transparent; background:linear-gradient(135deg,#E8794A,#D4A94A); color:#2B0D0D; }
+  .dhyan-start-btn { width:100%; max-width:220px; background:linear-gradient(135deg,#E8794A,#D4A94A); border:none; color:#2B0D0D;
+    font-weight:700; font-size:14px; padding:13px; border-radius:14px; cursor:pointer; }
+  .dhyan-start-btn.stop { background:rgba(232,121,74,.16); color:#E8794A; border:1px solid rgba(232,121,74,.4); }
+
+  /* floating youtube player */
+  #ytPlayerBox { position:fixed; bottom:calc(70px + env(safe-area-inset-bottom)); right:14px; z-index:60; border-radius:12px; overflow:hidden;
+    box-shadow:0 8px 24px rgba(0,0,0,.5); border:1px solid rgba(212,169,74,.3); display:none; background:#000; }
+  #ytPlayerBox.show { display:block; }
+  #ytPlayerCloseBtn { position:absolute; top:2px; right:2px; z-index:2; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,.65);
+    color:#fff; border:none; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 </style>
 </head>
 <body>
@@ -179,6 +235,7 @@
   <nav id="mainNav" class="hidden">
     <button class="tab-btn active" data-tab="jaap"><div class="tab-icon">⭕</div><div class="tab-label">जाप</div></button>
     <button class="tab-btn" data-tab="stats"><div class="tab-icon">📊</div><div class="tab-label">आँकड़े</div></button>
+    <button class="tab-btn" data-tab="dhyan"><div class="tab-icon">🕉️</div><div class="tab-label">ध्यान</div></button>
     <button class="tab-btn" data-tab="gallery"><div class="tab-icon">🖼️</div><div class="tab-label">गैलरी</div></button>
     <button class="tab-btn" data-tab="songs"><div class="tab-icon">🎵</div><div class="tab-label">भजन</div></button>
   </nav>
@@ -210,10 +267,31 @@
       <button class="btn-full" id="signOutBtn" style="background:rgba(232,121,74,.18); color:#E8794A; border:1px solid rgba(232,121,74,.4);">साइन आउट करें</button>
     </div>
   </div>
+
+  <div id="goalModal" class="modal-overlay hidden">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-title">आज का संकल्प</div>
+        <button class="icon-btn" onclick="closeGoalModal()">✕</button>
+      </div>
+      <div class="add-song-label">कितने जाप का लक्ष्य रखना है?</div>
+      <div class="duration-row" id="goalPresetRow" style="flex-wrap:wrap;">
+        <button class="duration-chip" data-goal="108">108</button>
+        <button class="duration-chip" data-goal="216">216</button>
+        <button class="duration-chip" data-goal="540">540</button>
+        <button class="duration-chip" data-goal="1008">1008</button>
+      </div>
+      <input id="customGoalInput" class="field" type="number" placeholder="या अपनी संख्या लिखें" />
+      <button class="btn-full" onclick="saveGoal()">सेव करें</button>
+    </div>
+  </div>
 </div>
 
 <audio id="audioPlayer"></audio>
-<div id="ytPlayerContainer" style="position:fixed; bottom:8px; right:8px; z-index:60; border-radius:8px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.4);"></div>
+<div id="ytPlayerBox">
+  <button id="ytPlayerCloseBtn">✕</button>
+  <div id="ytPlayerContainer"></div>
+</div>
 <input type="file" id="imageFileInput" accept="image/*" multiple class="hidden" />
 <input type="file" id="audioFileInput" accept="audio/*" class="hidden" />
 
@@ -256,6 +334,7 @@ const defaultData = () => ({
   counts: {},
   backgroundId: null,
   songs: [],
+  dailyGoal: 108,
 });
 let state = defaultData();
 let images = [];
@@ -320,7 +399,7 @@ function scheduleSave() {
   saveTimer = setTimeout(() => {
     db.collection("users").doc(currentUser.uid).set({
       mantras: state.mantras, selectedId: state.selectedId, counts: state.counts,
-      backgroundId: state.backgroundId, songs: state.songs, updatedAt: Date.now(),
+      backgroundId: state.backgroundId, songs: state.songs, dailyGoal: state.dailyGoal, updatedAt: Date.now(),
     }, { merge: true }).catch(e => console.error("save failed", e));
   }, 500);
 }
@@ -432,6 +511,7 @@ function render() {
   const main = document.getElementById("mainArea");
   if (currentTab === "jaap") main.innerHTML = renderJaap();
   else if (currentTab === "stats") main.innerHTML = renderStats();
+  else if (currentTab === "dhyan") main.innerHTML = renderDhyan();
   else if (currentTab === "gallery") main.innerHTML = renderGallery();
   else if (currentTab === "songs") main.innerHTML = renderSongs();
 
@@ -463,6 +543,7 @@ function renderJaap() {
     beads += `<circle cx="${x}" cy="${y}" r="${isSumeru?6.5:4.2}" fill="${isSumeru?'#E8794A':on?'#D4A94A':'rgba(243,231,211,0.16)'}"/>`;
   }
   const chips = state.mantras.map(m => `<button class="chip ${m.id===state.selectedId?'active':''}" data-mid="${m.id}">${m.name}</button>`).join("");
+  const todayCombined = sumByDate(state.counts)[todayKey()] || 0;
   const bgImg = images.find(i => i.id === state.backgroundId);
   const deg = Math.round(progress*360);
   const maskCss = `conic-gradient(#000 0deg ${deg}deg, transparent ${deg}deg 360deg)`;
@@ -487,6 +568,14 @@ function renderJaap() {
       <div class="stat-row">
         <div class="stat-pill"><div class="val">${cnt.total}</div><div class="lbl">कुल जाप</div></div>
         <div class="stat-pill"><div class="val">${rounds}</div><div class="lbl">माला</div></div>
+      </div>
+      <div class="goal-card" id="goalCard">
+        <div class="goal-top">
+          <div class="goal-label">🙏 आज का संकल्प</div>
+          <div class="goal-count">${todayCombined}/${state.dailyGoal}</div>
+        </div>
+        <div class="goal-bar-bg"><div class="goal-bar-fg" style="width:${Math.min(100, Math.round(todayCombined/state.dailyGoal*100))}%"></div></div>
+        ${todayCombined >= state.dailyGoal ? '<div class="goal-done-badge">✓ लक्ष्य पूर्ण, आज बहुत बढ़िया!</div>' : ''}
       </div>
     </div>`;
 }
@@ -581,10 +670,59 @@ function renderSongs() {
     </div>`;
 }
 
-/* ---------------- actions ---------------- */
+/* ---------------- dhyan (meditation) ---------------- */
+let dhyanDurationMin = 3;
+let dhyanRemaining = 3*60;
+let dhyanRunning = false;
+let dhyanIntervalId = null;
+
+function renderDhyan() {
+  const mins = Math.floor(dhyanRemaining/60);
+  const secs = dhyanRemaining%60;
+  const timeStr = `${pad(mins)}:${pad(secs)}`;
+  const durations = [1,3,5,10];
+  const chips = durations.map(d => `<button class="duration-chip ${d===dhyanDurationMin?'active':''}" data-dur="${d}" ${dhyanRunning?'disabled':''}>${d} मिनट</button>`).join("");
+  return `
+    <div class="dhyan-wrap">
+      <div class="dhyan-title">शांति क्षण</div>
+      <div class="dhyan-sub">आँखें बंद करो, साँस के साथ गोले को महसूस करो</div>
+      <div class="breathe-circle-wrap">
+        <div class="breathe-circle ${dhyanRunning?'running':''}" id="breatheCircle">
+          <div class="breathe-label">${dhyanRunning ? 'साँस लो...' : 'शुरू करें'}</div>
+        </div>
+      </div>
+      <div class="dhyan-timer">${timeStr}</div>
+      <div class="duration-row">${chips}</div>
+      <button class="dhyan-start-btn ${dhyanRunning?'stop':''}" id="dhyanToggleBtn">${dhyanRunning ? 'रोकें' : 'ध्यान शुरू करें'}</button>
+    </div>`;
+}
+
+function startDhyan() {
+  dhyanRunning = true;
+  dhyanRemaining = dhyanDurationMin*60;
+  render();
+  dhyanIntervalId = setInterval(() => {
+    dhyanRemaining--;
+    const timerEl = document.querySelector(".dhyan-timer");
+    if (timerEl) timerEl.textContent = `${pad(Math.floor(dhyanRemaining/60))}:${pad(dhyanRemaining%60)}`;
+    if (dhyanRemaining <= 0) {
+      stopDhyan();
+      celebrate("🕉️ ध्यान पूर्ण हुआ 🙏", true);
+    }
+  }, 1000);
+}
+function stopDhyan() {
+  dhyanRunning = false;
+  clearInterval(dhyanIntervalId);
+  dhyanIntervalId = null;
+  render();
+}
+
 function increment() {
   const cur = state.counts[state.selectedId] || { total: 0, byDate: {} };
   const t = todayKey();
+  const beforeRounds = Math.floor(cur.total / 108);
+  const beforeTodayCombined = sumByDate(state.counts)[t] || 0;
   cur.total += 1;
   cur.byDate[t] = (cur.byDate[t]||0) + 1;
   state.counts[state.selectedId] = cur;
@@ -592,6 +730,72 @@ function increment() {
   if (navigator.vibrate) navigator.vibrate(12);
   const btn = document.getElementById("malaBtn");
   if (btn) { btn.classList.add("pulse"); setTimeout(()=>btn.classList.remove("pulse"),150); }
+  render();
+
+  const afterRounds = Math.floor(cur.total / 108);
+  const afterTodayCombined = beforeTodayCombined + 1;
+  if (afterRounds > beforeRounds) {
+    celebrate("🌸 एक माला पूर्ण हुई! 🙏", true);
+  } else if (beforeTodayCombined < state.dailyGoal && afterTodayCombined >= state.dailyGoal) {
+    celebrate("✨ आज का संकल्प पूरा हुआ! ✨", true);
+  }
+}
+
+/* ---------------- celebration: chime + falling petals ---------------- */
+let audioCtx = null;
+function playChime() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+    const notes = [523.25, 659.25, 783.99];
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i*0.14);
+      gain.gain.linearRampToValueAtTime(0.12, now + i*0.14 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i*0.14 + 1.4);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(now + i*0.14);
+      osc.stop(now + i*0.14 + 1.5);
+    });
+  } catch (e) { console.log("audio not available", e); }
+}
+function celebrate(message, withChime) {
+  if (withChime) playChime();
+  const petalEmojis = ["🌸","🌺","🌼","🪷"];
+  for (let i=0; i<18; i++) {
+    const p = document.createElement("div");
+    p.className = "petal";
+    p.textContent = petalEmojis[Math.floor(Math.random()*petalEmojis.length)];
+    p.style.left = Math.random()*100 + "vw";
+    p.style.setProperty("--drift", (Math.random()*80-40) + "px");
+    p.style.animationDuration = (2.2 + Math.random()*1.6) + "s";
+    p.style.fontSize = (16 + Math.random()*14) + "px";
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 4200);
+  }
+  const toast = document.createElement("div");
+  toast.className = "celebrate-toast";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2600);
+}
+
+/* ---------------- daily goal (sankalp) ---------------- */
+function openGoalModal() {
+  document.getElementById("goalModal").classList.remove("hidden");
+  document.getElementById("customGoalInput").value = state.dailyGoal;
+  document.querySelectorAll("#goalPresetRow .duration-chip").forEach(c => {
+    c.classList.toggle("active", Number(c.dataset.goal) === state.dailyGoal);
+  });
+}
+function closeGoalModal() { document.getElementById("goalModal").classList.add("hidden"); }
+function saveGoal() {
+  const val = parseInt(document.getElementById("customGoalInput").value, 10);
+  if (val && val > 0) { state.dailyGoal = val; scheduleSave(); }
+  closeGoalModal();
   render();
 }
 
@@ -689,25 +893,82 @@ function deleteSongLocal(id) {
   state.songs = state.songs.filter(s => s.id!==id);
   scheduleSave(); render();
 }
+
+/* ---------------- playback: direct audio + robust YouTube IFrame API ---------------- */
+let ytPlayer = null;
+let ytApiLoading = false;
+let pendingYtVideoId = null;
+
+function loadYouTubeAPI(onReady) {
+  if (window.YT && window.YT.Player) { onReady(); return; }
+  window.__ytApiCallbacks = window.__ytApiCallbacks || [];
+  window.__ytApiCallbacks.push(onReady);
+  if (ytApiLoading) return;
+  ytApiLoading = true;
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
+  window.onYouTubeIframeAPIReady = () => {
+    (window.__ytApiCallbacks || []).forEach(cb => cb());
+    window.__ytApiCallbacks = [];
+  };
+}
+
+function ensureYtPlayer(callback) {
+  if (ytPlayer) { callback(); return; }
+  loadYouTubeAPI(() => {
+    ytPlayer = new YT.Player("ytPlayerContainer", {
+      height: "158", width: "280",
+      playerVars: { playsinline: 1, rel: 0, controls: 1 },
+      events: {
+        onReady: () => callback(),
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.ENDED) { playingId = null; render(); }
+          if (e.data === YT.PlayerState.PLAYING) { document.getElementById("ytPlayerBox").classList.add("show"); }
+        },
+        onError: () => {
+          playingId = null; render();
+          const toast = document.createElement("div");
+          toast.className = "celebrate-toast";
+          toast.textContent = "⚠️ ये वीडियो नहीं चल सकता (embedding बंद है)";
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2600);
+        }
+      }
+    });
+  });
+}
+
 function stopAllPlayback() {
   document.getElementById("audioPlayer").pause();
-  const ytBox = document.getElementById("ytPlayerContainer");
-  if (ytBox) ytBox.innerHTML = "";
+  if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(e){} }
+  document.getElementById("ytPlayerBox").classList.remove("show");
   playingId = null;
 }
+document.getElementById("ytPlayerCloseBtn").onclick = () => { stopAllPlayback(); render(); };
+
 function togglePlay(song) {
   const wasPlaying = playingId === song.id;
-  stopAllPlayback();
-  if (wasPlaying) { render(); return; }
   if (song.platform === "youtube") {
-    const ytBox = document.getElementById("ytPlayerContainer");
-    ytBox.innerHTML = `<iframe width="160" height="90" src="https://www.youtube.com/embed/${song.videoId}?autoplay=1&playsinline=1" allow="autoplay; encrypted-media" frameborder="0"></iframe>`;
-  } else {
-    const audio = document.getElementById("audioPlayer");
-    audio.src = song.url;
-    audio.play().catch(()=>{});
+    document.getElementById("audioPlayer").pause();
+    if (wasPlaying) {
+      if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+      document.getElementById("ytPlayerBox").classList.remove("show");
+      playingId = null; render(); return;
+    }
+    playingId = song.id;
+    document.getElementById("ytPlayerBox").classList.add("show");
+    ensureYtPlayer(() => {
+      if (ytPlayer.loadVideoById) ytPlayer.loadVideoById(song.videoId);
+    });
+    render();
+    return;
   }
-  playingId = song.id;
+  if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch(e){} }
+  document.getElementById("ytPlayerBox").classList.remove("show");
+  const audio = document.getElementById("audioPlayer");
+  if (wasPlaying) { audio.pause(); playingId = null; }
+  else { audio.src = song.url; audio.play().catch(()=>{}); playingId = song.id; }
   render();
 }
 
@@ -741,13 +1002,33 @@ function attachHandlers() {
     if (song) togglePlay(song);
   });
   document.querySelectorAll("[data-delsong]").forEach(b => b.onclick = () => deleteSongLocal(b.dataset.delsong));
+
+  const goalCard = document.getElementById("goalCard");
+  if (goalCard) goalCard.onclick = openGoalModal;
+  document.querySelectorAll("#goalPresetRow .duration-chip").forEach(c => c.onclick = () => {
+    document.getElementById("customGoalInput").value = c.dataset.goal;
+    document.querySelectorAll("#goalPresetRow .duration-chip").forEach(x => x.classList.toggle("active", x===c));
+  });
+
+  document.querySelectorAll(".duration-chip[data-dur]").forEach(c => c.onclick = () => {
+    if (dhyanRunning) return;
+    dhyanDurationMin = Number(c.dataset.dur);
+    dhyanRemaining = dhyanDurationMin*60;
+    render();
+  });
+  const dhyanToggleBtn = document.getElementById("dhyanToggleBtn");
+  if (dhyanToggleBtn) dhyanToggleBtn.onclick = () => { dhyanRunning ? stopDhyan() : startDhyan(); };
 }
 
-document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => { currentTab = b.dataset.tab; render(); });
+document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => {
+  if (currentTab === "dhyan" && dhyanRunning) stopDhyan();
+  currentTab = b.dataset.tab; render();
+});
 document.getElementById("imageFileInput").addEventListener("change", e => { handleImageFiles(Array.from(e.target.files||[])); e.target.value=""; });
 document.getElementById("audioFileInput").addEventListener("change", e => { const f=e.target.files?.[0]; if(f) addLocalSong(f); e.target.value=""; });
 document.getElementById("audioPlayer").addEventListener("ended", () => { playingId=null; render(); });
 document.getElementById("manageModal").addEventListener("click", closeManage);
+document.getElementById("goalModal").addEventListener("click", closeGoalModal);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
